@@ -87,7 +87,7 @@ with col_form:
                 <span class="emoji">🚀</span>Prédire le Prix
             </button>
         """, unsafe_allow_html=True)
-        submitted = True  # Bouton personnalisé déclenche directement la soumission, pas besoin de bouton natif
+        submitted = st.form_submit_button("")
 
 with col_main:
     st.markdown(
