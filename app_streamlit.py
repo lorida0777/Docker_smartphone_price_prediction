@@ -157,6 +157,25 @@ with col_main:
                     f"Prix moyen similaire : <b>₹{avg_price:,.0f} (≈ ${avg_usd:,.2f})</b></div>",
                     unsafe_allow_html=True
                 )
+
+                variation = ((predicted_price - avg_price) / avg_price) * 100
+                variation_text = f"{abs(variation):.1f}%"
+                if variation > 0:
+                    st.markdown(
+                        f"<div style='text-align:center; margin-top:10px; padding:8px; background-color:#ffe6e6; color:#cc0000; font-weight:bold; border-radius:6px;'>"
+                        f"⬆️ Prix supérieur de {variation_text} à la moyenne</div>",
+                        unsafe_allow_html=True)
+                elif variation < 0:
+                    st.markdown(
+                        f"<div style='text-align:center; margin-top:10px; padding:8px; background-color:#e6ffe6; color:#007500; font-weight:bold; border-radius:6px;'>"
+                        f"⬇️ Prix inférieur de {variation_text} à la moyenne</div>",
+                        unsafe_allow_html=True)
+                else:
+                    st.markdown(
+                        "<div style='text-align:center; margin-top:10px; padding:8px; background-color:#f0f0f0; color:#555; font-weight:bold; border-radius:6px;'>"
+                        "Prix équivalent à la moyenne</div>",
+                        unsafe_allow_html=True)
+
                 if predicted_price > avg_price * 1.1:
                     st.warning("⚠️ Prix supérieur à la moyenne — attention au rapport qualité/prix")
                 elif predicted_price < avg_price * 0.9:
