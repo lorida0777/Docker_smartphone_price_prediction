@@ -40,38 +40,6 @@ col_form, col_main = st.columns([1, 2], gap="large")
 
 with col_form:
     st.header("📋 Caractéristiques du téléphone")
-    # CSS pour cacher le bouton natif Streamlit
-    st.markdown("""
-        <style>
-        .css-1x8cf1d .stButton > button {visibility: hidden;}
-        .stButton>button {visibility: hidden;}
-        #custom_predict_btn {
-            width: 100%;
-            background: #38b24a;
-            color: white;
-            font-weight: bold;
-            font-size: 1.4em;
-            border-radius: 8px;
-            padding: 0.6em 0;
-            border: none;
-            margin-top: 18px;
-            margin-bottom: 6px;
-            box-shadow: 0 3px 10px rgba(56,178,74,0.11);
-            transition: background 0.2s;
-        }
-        #custom_predict_btn:hover {
-            background: #2d9e3f;
-            cursor:pointer;
-        }
-        #custom_predict_btn .emoji {margin-right:0.5em;}
-        </style>
-        <script>
-        function submitForm(){
-            const e = window.parent.document.querySelector('button[kind="primary"]');
-            if(e) e.click();
-        }
-        </script>
-    """, unsafe_allow_html=True)
     with st.form("input_form", clear_on_submit=False):
         brand = st.selectbox("Marque", brands)
         processor = st.selectbox("Processeur", processors)
@@ -81,15 +49,33 @@ with col_form:
         storage = st.number_input("Stockage (GB)", 16, 1024, 128, step=16)
         rear_camera = st.number_input("Caméra arrière (MP)", 5, 200, 48)
         front_camera = st.number_input("Caméra avant (MP)", 2, 50, 12)
-        # Notre bouton custom, avec JS qui simule le click du bouton natif
+        # --- Bouton natif stylisé ---
         st.markdown("""
-            <button id="custom_predict_btn" onclick="submitForm();return false;">
-                <span class="emoji">🚀</span>Prédire le Prix
-            </button>
+            <style>
+            div.stButton > button:first-child {
+                background-color: #38b24a;
+                color: white;
+                font-size: 1.4em;
+                font-weight: bold;
+                width: 100%;
+                border-radius: 8px;
+                padding: 0.6em 0;
+                border: none;
+                margin-top: 18px;
+                margin-bottom: 6px;
+                box-shadow: 0 3px 10px rgba(56,178,74,0.11);
+                transition: background 0.2s;
+            }
+            div.stButton > button:first-child:hover {
+                background: #2d9e3f;
+                cursor:pointer;
+            }
+            </style>
         """, unsafe_allow_html=True)
-        submitted = True  # Bouton personnalisé déclenche directement la soumission, pas besoin de bouton natif
+        submitted = st.form_submit_button("🚀 Prédire le Prix")
 
 with col_main:
+    # Titre principal, toujours affiché
     st.markdown(
         "<h1 style='text-align:center; font-size:2.6em; font-weight: bold; color:#1f77b4;'>"
         "Prédiction de prix de Téléphones"
@@ -100,8 +86,8 @@ with col_main:
     tab_css = '''
     <style>
     .stTabs [data-baseweb="tab-list"] button {
-        font-size: 1.6em !important;
-        font-weight: 800 !important;
+        font-size: 1.5em !important;
+        font-weight: 900 !important;
         padding: 0.6em 2em !important;
         border-bottom: 5px solid #d0f5dd !important;
         transition: background 0.25s, color 0.25s;
