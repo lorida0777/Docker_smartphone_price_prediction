@@ -4,6 +4,7 @@ import joblib
 import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
+import math
 
 st.set_page_config(
     page_title="Prédiction de Prix de Téléphones (USD)",
@@ -103,7 +104,6 @@ with col_main:
             ram_mb = ram * 1000
             camera_total = rear_camera + front_camera
 
-            # Calcul robustes (évite divisions par 0)
             price_per_gb = df['Price'].mean() / (df['Internal storage (GB)'].mean() or 1)
             price_per_mp = df['Price'].mean() / ((df['Rear camera'].mean() + df['Front camera'].mean()) or 1)
             screen_to_battery_ratio = screen_size / (battery / 1000) if battery else 1.0
@@ -111,7 +111,6 @@ with col_main:
             battery_to_screen_ratio = battery / screen_size if screen_size else 1.0
             is_premium = int(brand in ['Apple', 'Samsung', 'OnePlus'])
 
-            # DataFrame de prédiction avec toutes les features utilisées par le modèle
             input_data = pd.DataFrame({
                 'Brand': [brand],
                 'Battery capacity (mAh)': [battery],
@@ -136,18 +135,29 @@ with col_main:
             input_data = input_data[feature_names]
             input_scaled = scaler.transform(input_data)
 
-            # Prédiction (log scale -> expm1 pour repasser à l'échelle originale)
             predicted_log_price = model.predict(input_scaled)[0]
             predicted_price = np.expm1(predicted_log_price)
             predicted_usd = predicted_price / USD_RATE
 
-            # Prix moyen des téléphones similaires (USD uniquement)
+            # Trouver téléphones similaires et moyenne
             similar_phones = df[
                 (df['Internal storage (GB)'].between(storage * 0.8, storage * 1.2)) &
                 (df['RAM (MB)'].between(ram * 1000 * 0.8, ram * 1000 * 1.2))
             ]
             avg_price = similar_phones['Price'].mean() if not similar_phones.empty else predicted_price
             avg_usd = avg_price / USD_RATE
+
+            # Patch sécurité
+            if not math.isfinite(predicted_usd) or predicted_usd < 0:
+                predicted_usd = 0
+            if not math.isfinite(avg_usd) or avg_usd <= 0:
+                avg_usd = predicted_usd if predicted_usd > 0 else 1
+
+            if avg_usd > 0:
+                variation = ((predicted_usd - avg_usd) / avg_usd) * 100
+            else:
+                variation = 0
+            variation_text = f"{abs(variation):.1f}%"
 
             onglet1, onglet2, onglet3 = st.tabs([
                 "📱 Prix estimé", "📈 Visualisations", "ℹ️ Informations Complémentaires"
@@ -163,9 +173,6 @@ with col_main:
                     f"Prix moyen similaire : <b>${avg_usd:,.2f}</b></div>",
                     unsafe_allow_html=True
                 )
-
-                variation = ((predicted_usd - avg_usd) / avg_usd) * 100 if avg_usd else 0
-                variation_text = f"{abs(variation):.1f}%"
                 if variation > 0:
                     st.markdown(
                         f"<div style='text-align:center; margin-top:10px; padding:8px; background-color:#ffe6e6; color:#cc0000; font-weight:bold; border-radius:6px;'>"
