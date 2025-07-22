@@ -85,12 +85,12 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
         try:
             input_data['Brand'] = brand_encoder.transform(input_data['Brand'])
         except Exception:
-            st.error(f"Marque inconnue pour l’encodeur : {brand}")
+            st.error(f"Marque inconnue pour l'encodeur : {brand}")
             st.stop()
         try:
             input_data['Processor'] = processor_encoder.transform(input_data['Processor'])
         except Exception:
-            st.error(f"Processeur inconnu pour l’encodeur : {processor}")
+            st.error(f"Processeur inconnu pour l'encodeur : {processor}")
             st.stop()
 
         input_data = input_data[feature_names]
@@ -124,11 +124,11 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
         else:
             adjusted_price_usd = predicted_price_usd
 
-        # Calcul du delta pour le badge
+        # Calcul du delta pour le badge (version ultra discrète)
         delta = ((adjusted_price_usd - avg_price_usd) / avg_price_usd * 100)
-        badge_color = "#00c853" if delta < 0 else "#d50000" if delta > 0 else "#888"
+        badge_color = "#689f38" if delta < 0 else "#d32f2f" if delta > 0 else "#616161"
         badge_sign = "+" if delta > 0 else ""
-        flag_html = f"<span style='background:{badge_color};color:white;padding:2px 8px;border-radius:12px;font-weight:600;font-size:0.9em;margin-left:10px;'>{badge_sign}{delta:.1f}%</span>"
+        flag_html = f"<span style='color:{badge_color};font-size:0.7em;opacity:0.8;'>({badge_sign}{delta:.1f}%)</span>"
 
         # Affichage du message succès centré et discret
         st.markdown(
