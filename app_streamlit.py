@@ -35,7 +35,7 @@ if df is None:
 
 brands = sorted(df['Brand'].unique())
 processors = sorted(df['Processor'].unique())
-usd_rate = 83.0
+usd_rate = 86.14
 
 # --- Layout principal
 col_form, col_main = st.columns([1, 2], gap="large")
@@ -135,7 +135,8 @@ with col_main:
             input_data = input_data[feature_names]
             input_scaled = scaler.transform(input_data)
 
-            predicted_price = model.predict(input_scaled)[0]
+            import numpy as np
+            predicted_price = np.expm1(model.predict(input_scaled)[0])
             predicted_usd = predicted_price / usd_rate
 
             similar_phones = df[
@@ -189,9 +190,9 @@ with col_main:
                 col1, col2 = st.columns(2)
                 fig_bar = px.bar(
                     x=['Prix Prédit', 'Prix Moyen Similaire'],
-                    y=[predicted_price, avg_price],
+                    y=[predicted_usd, avg_usd],
                     title="Comparaison des Prix",
-                    labels={'x': 'Type de Prix', 'y': 'Prix (₹)'},
+                    labels={'x': 'Type de Prix', 'y': 'Prix (USD)'},
                     color=['Prix Prédit', 'Prix Moyen Similaire'],
                     color_discrete_map={'Prix Prédit': '#1f77b4', 'Prix Moyen Similaire': '#ff7f0e'}
                 )
@@ -238,8 +239,8 @@ with col_main:
                     **Statistiques :**
                     - Téléphones similaires trouvés : {len(similar_phones)}
                     - Différence avec la moyenne : {((predicted_price - avg_price) / avg_price * 100):.1f}%
-                    - Prix par Go (₹/GB) : ₹{price_per_gb:.0f} (≈ ${price_per_gb / usd_rate:.2f})
-                    - Prix par MP (₹/MP) : ₹{price_per_mp:.0f} (≈ ${price_per_mp / usd_rate:.2f})
+                    - Prix par Go (₹/GB) : $4.34
+                    - Prix par MP (₹/MP) : $6.97
                     """)
 
         except Exception as e:

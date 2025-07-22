@@ -1,71 +1,43 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 # Docker_smartphone_price_prediction
 #First commit
 =======
 # 📱 Application de Prédiction de Prix de Smartphones
+=======
+>>>>>>> 49e8c39 (version 2 optimisation)
 
-Cette application de Machine Learning prédit le **prix d’un smartphone (en roupies indiennes ₹, avec conversion USD)** à partir de ses caractéristiques techniques.  
-Elle propose une interface web simple via **Streamlit**, conteneurisée avec **Docker**, permettant une utilisation sans installation locale de Python.
+# 📦 Projet de Prédiction du Prix des Smartphones
 
----
+Ce projet inclut :
+- ✅ Entraînement d’un modèle de régression sur le **prix log-transformé**
+- ✅ Comparaison de 3 modèles (Random Forest, Gradient Boosting, Extra Trees)
+- ✅ Tuning automatique du meilleur modèle
+- ✅ Application Streamlit en USD uniquement, avec visualisation dynamique
 
-## 🔧 Fonctionnalités principales
+## 🧪 Fichiers inclus
 
-- Formulaire interactif de saisie.
-- Prédiction du prix du smartphone (₹ et USD).
-- Affichage du **prix moyen de téléphones similaires**.
-- Visualisations interactives (barres & radar) avec Plotly.
-- Indicateurs personnalisés : **prix par Go**, **prix par MP**.
-- Interface utilisateur moderne, pédagogique et réactive.
-- Déploiement Dockerisé pour portabilité maximale.
+- `retrain_model_clean_full_models.py` : script complet d'entraînement + sélection automatique
+- `app_streamlit_usd_visuals.py` : application Streamlit (prévision + visualisations)
+- `ndtv_data_final.csv` : jeu de données original
 
----
+## 💵 Conversion
+Tous les prix sont en **USD** avec la conversion : `1 USD = 86.14 ₹`.
 
-## 📂 Structure du projet
+## 📈 Visualisation
+Un graphique `Prix réel vs Prix prédit` est généré automatiquement dans l’onglet 2.
 
-```
-.
-├── app_streamlit.py             # Application Streamlit
-├── Dockerfile                   # Image Docker
-├── requirements.txt             # Dépendances Python
-├── models/                      # Modèles & encodages
-│   ├── phone_price_model.pkl
-│   ├── scaler.pkl
-│   ├── brand_encoder.pkl
-│   ├── processor_encoder.pkl
-│   ├── label_encoder.pkl
-│   └── feature_names.pkl
-├── screenshoot/                 # Captures d’écran UI
-├── ndtv_data_final.csv          # Dataset d'entraînement
-└── retrain_model.py             # Script de re-entraînement
-```
-
----
-
-## 🧠 Algorithmes & Modèles
-
-- Modèle supervisé de régression : RandomForestRegressor ou autre, selon les entraînements.
-- Sélection dynamique du **meilleur modèle** selon RMSE, MAE...
-- Possibilité de re-train via `retrain_model.py`.
-
----
-
-## 🧪 Exécution locale (hors Docker)
-
+## ▶️ Lancement
 ```bash
-pip install -r requirements.txt
-streamlit run app_streamlit.py
+streamlit run app_streamlit_usd_visuals.py
 ```
 
----
-
-## 🐳 Exécution avec Docker
-
-1. Construction de l’image :
+Entraînez d'abord le modèle via :
 ```bash
-docker build -t phone-price-app .
+python retrain_model_clean_full_models.py
 ```
 
+<<<<<<< HEAD
 2. Lancement du conteneur :
 ```bash
 docker run -p 8501:8501 phone-price-app
@@ -130,3 +102,5 @@ Projet académique de Data Science avec Streamlit, Scikit-learn, Plotly & Docker
 
 ---
 >>>>>>> 9ece4da (Initial commit)
+=======
+>>>>>>> 49e8c39 (version 2 optimisation)
