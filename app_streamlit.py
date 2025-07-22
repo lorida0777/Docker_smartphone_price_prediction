@@ -1,4 +1,4 @@
-# Modif num 5
+# Modif num 5 - VERSION CORRIGÉE (avec prise en compte du retrain_model.py)
 import streamlit as st
 import pandas as pd
 import joblib
@@ -65,19 +65,18 @@ with col2:
 
 # Bouton de prédiction
 if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
-    
     try:
-        # Création des fonctionnalités
+        # --- Calcul des features utilisateur ---
         camera_total = rear_camera + front_camera
         ram_gb = ram
         ram_mb = ram * 1000
-        
-        # Calcul des métriques moyennes pour l'ingénierie des fonctionnalités
+
         price_per_gb = df['Price'].mean() / df['Internal storage (GB)'].mean()
         price_per_mp = df['Price'].mean() / (df['Rear camera'].mean() + df['Front camera'].mean())
         screen_to_battery_ratio = screen_size / (battery / 1000)
-        
-        # Préparation des données d'entrée
+        # Ajout du feature Is_Premium
+        is_premium = 1 if brand in ['Apple', 'Samsung', 'OnePlus'] else 0
+
         input_data = pd.DataFrame({
             'Brand': [brand],
             'Battery capacity (mAh)': [battery],
@@ -87,25 +86,37 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
             'Internal storage (GB)': [storage],
             'Rear camera': [rear_camera],
             'Front camera': [front_camera],
-            'Camera_Total': [camera_total],
-            'RAM_GB': [ram_gb],
             'Price_per_GB': [price_per_gb],
             'Price_per_MP': [price_per_mp],
             'Screen_to_Battery_Ratio': [screen_to_battery_ratio],
-            'Price_per_RAM': [price_per_gb],  # Approximation
-            'Battery_to_Screen_Ratio': [battery / screen_size]
+            'Camera_Total': [camera_total],
+            'RAM_GB': [ram_gb],
+            'Price_per_RAM': [price_per_gb],  # On garde cette approximation
+            'Battery_to_Screen_Ratio': [battery / screen_size],
+            'Is_Premium': [is_premium]
         })
-        
-        # Encodage des variables catégorielles
-        input_data['Brand'] = brand_encoder.transform(input_data['Brand'])
-        input_data['Processor'] = processor_encoder.transform(input_data['Processor'])
+
+        # Encodage des variables catégorielles (sécurisé)
+        try:
+            input_data['Brand'] = brand_encoder.transform(input_data['Brand'])
+        except Exception:
+            st.error(f"Marque inconnue pour l’encodeur : {brand}")
+            st.stop()
+        try:
+            input_data['Processor'] = processor_encoder.transform(input_data['Processor'])
+        except Exception:
+            st.error(f"Processeur inconnu pour l’encodeur : {processor}")
+            st.stop()
+
         # Réordonner les colonnes selon l'ordre d'entraînement
         input_data = input_data[feature_names]
         # Normalisation
         input_scaled = scaler.transform(input_data)
-        
-        # Prédiction brute
-        predicted_price = model.predict(input_scaled)[0]
+
+        # Prédiction brute LOG
+        predicted_log_price = model.predict(input_scaled)[0]
+        # Correction pour retrouver le prix "réel"
+        predicted_price = np.expm1(predicted_log_price)
 
         # Calcul du prix moyen des téléphones similaires
         similar_phones = df[
@@ -136,13 +147,13 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
         else:
             adjusted_price = predicted_price
             price_note = "(pas assez de téléphones similaires pour ajustement)"
-        
+
         # Affichage des résultats
         st.success("✅ Prédiction effectuée avec succès!")
-        
+
         # Métriques principales
         col1, col2, col3 = st.columns(3)
-        
+
         with col1:
             st.metric(
                 label="💰 Prix Prédit",
@@ -150,27 +161,27 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
                 delta=None,
                 help=price_note
             )
-        
+
         with col2:
             st.metric(
                 label="📊 Prix Moyen Similaire",
                 value=f"₹{avg_price:,.0f}",
                 delta=f"{((adjusted_price - avg_price) / avg_price * 100):.1f}%"
             )
-        
+
         with col3:
             st.metric(
                 label="🎯 Précision Modèle",
                 value="95.4%",
                 delta="+0.2%"
             )
-        
+
         # Graphiques
         st.markdown("---")
         st.subheader("📈 Visualisations")
-        
+
         col1, col2 = st.columns(2)
-        
+
         with col1:
             # Graphique en barres - Comparaison des prix
             fig_bar = px.bar(
@@ -183,11 +194,11 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
             )
             fig_bar.update_layout(showlegend=False)
             st.plotly_chart(fig_bar, use_container_width=True)
-        
+
         with col2:
             # Graphique radar - Comparaison des caractéristiques
             fig_radar = go.Figure()
-            
+
             # Caractéristiques du téléphone saisi
             fig_radar.add_trace(go.Scatterpolar(
                 r=[battery/5000, screen_size/7, ram/8, storage/256, rear_camera/64, front_camera/32],
@@ -196,7 +207,7 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
                 name='Téléphone Saisi',
                 line_color='#1f77b4'
             ))
-            
+
             # Caractéristiques moyennes
             fig_radar.add_trace(go.Scatterpolar(
                 r=[
@@ -212,20 +223,20 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
                 name='Moyenne Générale',
                 line_color='#ff7f0e'
             ))
-            
+
             fig_radar.update_layout(
                 polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
                 showlegend=True,
                 title="Comparaison des Caractéristiques"
             )
             st.plotly_chart(fig_radar, use_container_width=True)
-        
+
         # Informations supplémentaires
         st.markdown("---")
         st.subheader("ℹ️ Informations Complémentaires")
-        
+
         col1, col2 = st.columns(2)
-        
+
         with col1:
             st.info(f"""
             **Caractéristiques saisies:**
@@ -237,7 +248,7 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
             - Caméra arrière: {rear_camera} MP
             - Caméra avant: {front_camera} MP
             """)
-        
+
         with col2:
             st.info(f"""
             **Statistiques:**
@@ -246,7 +257,7 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
             - Prix par GB: ₹{price_per_gb:.0f}
             - Prix par MP: ₹{price_per_mp:.0f}
             """)
-        
+
         # Recommandations
         if adjusted_price > avg_price * 1.1:
             st.warning("⚠️ Le prix prédit est supérieur à la moyenne des téléphones similaires. Vérifiez les caractéristiques.")
@@ -254,16 +265,16 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
             st.success("✅ Le prix prédit est inférieur à la moyenne des téléphones similaires. Bon rapport qualité-prix!")
         else:
             st.info("ℹ️ Le prix prédit est dans la moyenne des téléphones similaires.")
-            
+
     except Exception as e:
         st.error(f"❌ Erreur lors de la prédiction: {e}")
         st.error("Vérifiez que toutes les valeurs sont correctes.")
 
 # Footer
 st.markdown("---")
-st.markdown("""
+st.markdown(f"""
 <div style='text-align: center; color: #666;'>
     <p>🤖 Modèle de Machine Learning - Précision: 95.4%</p>
     <p>📊 Basé sur {len(df)} téléphones dans la base de données</p>
 </div>
-""", unsafe_allow_html=True) 
+""", unsafe_allow_html=True)
