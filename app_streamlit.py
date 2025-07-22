@@ -34,8 +34,8 @@ with st.spinner("Chargement des données..."):
 if df is None:
     st.stop()
 
-brands = sorted(df['Brand'].unique())
-processors = sorted(df['Processor'].unique())
+brands = sorted(df['Brand'].dropna().unique())
+processors = sorted(df['Processor'].dropna().unique())
 
 col_form, col_main = st.columns([1, 2], gap="large")
 
@@ -44,10 +44,10 @@ with col_form:
     with st.form("input_form", clear_on_submit=False):
         brand = st.selectbox("Marque", brands)
         processor = st.selectbox("Processeur", processors)
-        battery = st.number_input("Batterie (mAh)", 1000, 10000, 4000, step=100)
-        screen_size = st.number_input("Taille écran (pouces)", 4.0, 8.0, 6.1, step=0.1)
-        ram = st.number_input("RAM (GB)", 1, 16, 6)
-        storage = st.number_input("Stockage (GB)", 16, 1024, 128, step=16)
+        battery = st.number_input("Batterie (mAh)", int(df['Battery capacity (mAh)'].min()), int(df['Battery capacity (mAh)'].max()), 4000, step=100)
+        screen_size = st.number_input("Taille écran (pouces)", float(df['Screen size (inches)'].min()), float(df['Screen size (inches)'].max()), 6.0, step=0.1)
+        ram = st.number_input("RAM (GB)", 1, 16, 4, step=1)
+        storage = st.number_input("Stockage (GB)", 16, 1024, 64, step=16)
         rear_camera = st.number_input("Caméra arrière (MP)", 5, 200, 48)
         front_camera = st.number_input("Caméra avant (MP)", 2, 50, 12)
         st.markdown("""
@@ -101,15 +101,25 @@ with col_main:
 
     if submitted:
         try:
-            ram_mb = ram * 1000
+            # ---------- FEATURE ENGINEERING (exact retrain_model.py) ----------
+            ram_mb = int(ram * 1000)
             camera_total = rear_camera + front_camera
 
-            price_per_gb = df['Price'].mean() / (df['Internal storage (GB)'].mean() or 1)
-            price_per_mp = df['Price'].mean() / ((df['Rear camera'].mean() + df['Front camera'].mean()) or 1)
-            screen_to_battery_ratio = screen_size / (battery / 1000) if battery else 1.0
-            price_per_ram = df['Price'].mean() / (df['RAM (MB)'].mean() or 1)
-            battery_to_screen_ratio = battery / screen_size if screen_size else 1.0
+            # Pour les features dérivées qui nécessitent le prix, utiliser la moyenne du dataset (comme dans retrain_model.py pour l'inférence)
+            mean_price = df['Price'].mean()
+            # price_per_gb
+            price_per_gb = mean_price / storage if storage > 0 else mean_price
+            # price_per_mp
+            price_per_mp = mean_price / camera_total if camera_total > 0 else mean_price
+            # screen_to_battery_ratio
+            screen_to_battery_ratio = screen_size / (battery / 1000) if battery > 0 else 1.0
+            # price_per_ram
+            price_per_ram = mean_price / ram_mb if ram_mb > 0 else mean_price
+            # battery_to_screen_ratio
+            battery_to_screen_ratio = battery / screen_size if screen_size > 0 else 3000
+            # is_premium
             is_premium = int(brand in ['Apple', 'Samsung', 'OnePlus'])
+            ram_gb = ram_mb / 1000
 
             input_data = pd.DataFrame({
                 'Brand': [brand],
@@ -124,35 +134,40 @@ with col_main:
                 'Price_per_MP': [price_per_mp],
                 'Screen_to_Battery_Ratio': [screen_to_battery_ratio],
                 'Camera_Total': [camera_total],
-                'RAM_GB': [ram],
+                'RAM_GB': [ram_gb],
                 'Price_per_RAM': [price_per_ram],
                 'Battery_to_Screen_Ratio': [battery_to_screen_ratio],
                 'Is_Premium': [is_premium]
             })
 
+            # Encodage
             input_data['Brand'] = brand_encoder.transform(input_data['Brand'])
             input_data['Processor'] = processor_encoder.transform(input_data['Processor'])
             input_data = input_data[feature_names]
             input_scaled = scaler.transform(input_data)
 
+            # Prédiction log(price), puis inversion expm1
             predicted_log_price = model.predict(input_scaled)[0]
-            predicted_price = np.expm1(predicted_log_price)
-            predicted_usd = predicted_price / USD_RATE
+            predicted_price_rs = np.expm1(predicted_log_price)
+            predicted_usd = predicted_price_rs / USD_RATE
 
-            # Trouver téléphones similaires et moyenne
+            # Trouver téléphones similaires (pour info, garder la logique simple)
             similar_phones = df[
-                (df['Internal storage (GB)'].between(storage * 0.8, storage * 1.2)) &
-                (df['RAM (MB)'].between(ram * 1000 * 0.8, ram * 1000 * 1.2))
+                (df['Brand'] == brand) &
+                (df['Processor'] == processor) &
+                (df['RAM (MB)'] == ram_mb) &
+                (df['Internal storage (GB)'] == storage)
             ]
-            avg_price = similar_phones['Price'].mean() if not similar_phones.empty else predicted_price
+            avg_price = similar_phones['Price'].mean() if not similar_phones.empty else mean_price
             avg_usd = avg_price / USD_RATE
 
-            # Patch sécurité
+            # Gestion sécurité
             if not math.isfinite(predicted_usd) or predicted_usd < 0:
                 predicted_usd = 0
             if not math.isfinite(avg_usd) or avg_usd <= 0:
                 avg_usd = predicted_usd if predicted_usd > 0 else 1
 
+            # Calcul écart
             if avg_usd > 0:
                 variation = ((predicted_usd - avg_usd) / avg_usd) * 100
             else:
@@ -232,12 +247,20 @@ with col_main:
                 with col2:
                     st.plotly_chart(fig_radar, use_container_width=True)
 
+                # --- Ajout d'une distribution du prix en USD ---
+                st.markdown("#### Distribution des prix (USD)")
+                fig_hist = px.histogram(df, x=df['Price']/USD_RATE, nbins=30,
+                                       labels={'x': 'Prix (USD)'}, title="Distribution des prix sur la base de données")
+                fig_hist.add_vline(x=predicted_usd, line_dash="dash", line_color="red", annotation_text="Prix prédit", annotation_position="top left")
+                st.plotly_chart(fig_hist, use_container_width=True)
+
             with onglet3:
                 col1, col2 = st.columns(2)
                 with col1:
                     st.info(f"""
                     **Caractéristiques saisies :**
                     - Marque : {brand}
+                    - Processeur : {processor}
                     - Batterie : {battery} mAh
                     - Écran : {screen_size} pouces
                     - RAM : {ram} GB
