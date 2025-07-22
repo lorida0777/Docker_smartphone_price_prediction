@@ -81,7 +81,7 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
             'Is_Premium': [is_premium]
         })
 
-        # Encodage des variables catégorielles (sécurisé)
+        # Encodage des variables catégorielles
         try:
             input_data['Brand'] = brand_encoder.transform(input_data['Brand'])
         except Exception:
@@ -107,7 +107,6 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
         avg_price_rs = similar_phones['Price'].mean() if not similar_phones.empty else predicted_price_rs
         avg_price_usd = avg_price_rs / USD_RATE
 
-        # --- Ajustement dynamique interne sans affichage de note ---
         if len(similar_phones) >= 5:
             relative_gap = abs(predicted_price_usd - avg_price_usd) / avg_price_usd
             if relative_gap > 0.3:
@@ -117,14 +116,13 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
             else:
                 model_weight = 0.8
             adjusted_price_usd = model_weight * predicted_price_usd + (1 - model_weight) * avg_price_usd
-
             max_allowed = avg_price_usd * 1.10
             if adjusted_price_usd > max_allowed:
                 adjusted_price_usd = max_allowed
         else:
             adjusted_price_usd = predicted_price_usd
 
-        # Calcul du delta pour le badge (version ultra discrète mais avec style badge)
+        # Badge delta ultra-discret
         delta = ((adjusted_price_usd - avg_price_usd) / avg_price_usd * 100)
         badge_color = "#81c784" if delta < 0 else "#e57373" if delta > 0 else "#bdbdbd"
         badge_sign = "+" if delta > 0 else ""
@@ -144,7 +142,7 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
             height:1em;
         ">{badge_sign}{delta:.1f}%</span>"""
 
-        # Affichage du message succès
+        # Affichage des résultats
         st.markdown(
             "<span style='display:inline-block; background:#e6ffed; color:#237804; padding:6px 18px; border-radius:8px; font-size:1.1em; font-weight:600;'>✅ Prédiction effectuée avec succès!</span>",
             unsafe_allow_html=True
