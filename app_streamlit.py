@@ -54,7 +54,7 @@ brand = st.sidebar.selectbox("Marque", brands, help="Sélectionnez la marque du 
 col1, col2 = st.sidebar.columns(2)
 with col1:
     battery = st.number_input("Batterie (mAh)", min_value=1000, max_value=10000, value=4000, step=100)
-    screen_size = st.number_input("Taille écran (pouces)", min_value=4.0, max_value=8.0, value=5, step=0.1)
+    screen_size = st.number_input("Taille écran (pouces)", min_value=4.0, max_value=8.0, value=5.0, step=0.1)
     ram = st.number_input("RAM (GB)", min_value=1, max_value=16, value=4, step=1)
     storage = st.number_input("Stockage (GB)", min_value=16, max_value=1024, value=64, step=8)
 
