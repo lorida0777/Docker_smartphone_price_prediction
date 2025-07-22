@@ -1,5 +1,3 @@
-# ajout visu : Prix prédit VS prix réel
-
 import streamlit as st
 import pandas as pd
 import joblib
@@ -8,10 +6,12 @@ import plotly.graph_objects as go
 import numpy as np
 
 st.set_page_config(
-    page_title="Prédiction de Prix de Téléphones",
+    page_title="Prédiction de Prix de Téléphones (USD)",
     page_icon="📱",
     layout="wide"
 )
+
+USD_RATE = 86.14  # 1 USD = 86.14 ₹
 
 @st.cache_data
 def load_data():
@@ -35,9 +35,7 @@ if df is None:
 
 brands = sorted(df['Brand'].unique())
 processors = sorted(df['Processor'].unique())
-usd_rate = 86.14
 
-# --- Layout principal
 col_form, col_main = st.columns([1, 2], gap="large")
 
 with col_form:
@@ -51,7 +49,6 @@ with col_form:
         storage = st.number_input("Stockage (GB)", 16, 1024, 128, step=16)
         rear_camera = st.number_input("Caméra arrière (MP)", 5, 200, 48)
         front_camera = st.number_input("Caméra avant (MP)", 2, 50, 12)
-        # --- Bouton natif stylisé ---
         st.markdown("""
             <style>
             div.stButton > button:first-child {
@@ -77,14 +74,11 @@ with col_form:
         submitted = st.form_submit_button("🚀 Prédire le Prix")
 
 with col_main:
-    # Titre principal, toujours affiché
     st.markdown(
         "<h1 style='text-align:center; font-size:2.6em; font-weight: bold; color:#1f77b4;'>"
-        "Prédiction de prix de Téléphones"
+        "Prédiction de prix de Téléphones (USD)"
         "</h1>", unsafe_allow_html=True
     )
-
-    # Custom CSS pour onglets plus visibles
     tab_css = '''
     <style>
     .stTabs [data-baseweb="tab-list"] button {
@@ -108,10 +102,16 @@ with col_main:
         try:
             ram_mb = ram * 1000
             camera_total = rear_camera + front_camera
-            price_per_gb = df['Price'].mean() / df['Internal storage (GB)'].mean()
-            price_per_mp = df['Price'].mean() / (df['Rear camera'].mean() + df['Front camera'].mean())
-            screen_to_battery_ratio = screen_size / (battery / 1000)
 
+            # Calcul robustes (évite divisions par 0)
+            price_per_gb = df['Price'].mean() / (df['Internal storage (GB)'].mean() or 1)
+            price_per_mp = df['Price'].mean() / ((df['Rear camera'].mean() + df['Front camera'].mean()) or 1)
+            screen_to_battery_ratio = screen_size / (battery / 1000) if battery else 1.0
+            price_per_ram = df['Price'].mean() / (df['RAM (MB)'].mean() or 1)
+            battery_to_screen_ratio = battery / screen_size if screen_size else 1.0
+            is_premium = int(brand in ['Apple', 'Samsung', 'OnePlus'])
+
+            # DataFrame de prédiction avec toutes les features utilisées par le modèle
             input_data = pd.DataFrame({
                 'Brand': [brand],
                 'Battery capacity (mAh)': [battery],
@@ -121,13 +121,14 @@ with col_main:
                 'Internal storage (GB)': [storage],
                 'Rear camera': [rear_camera],
                 'Front camera': [front_camera],
-                'Camera_Total': [camera_total],
-                'RAM_GB': [ram],
                 'Price_per_GB': [price_per_gb],
                 'Price_per_MP': [price_per_mp],
                 'Screen_to_Battery_Ratio': [screen_to_battery_ratio],
-                'Price_per_RAM': [price_per_gb],
-                'Battery_to_Screen_Ratio': [battery / screen_size]
+                'Camera_Total': [camera_total],
+                'RAM_GB': [ram],
+                'Price_per_RAM': [price_per_ram],
+                'Battery_to_Screen_Ratio': [battery_to_screen_ratio],
+                'Is_Premium': [is_premium]
             })
 
             input_data['Brand'] = brand_encoder.transform(input_data['Brand'])
@@ -135,16 +136,18 @@ with col_main:
             input_data = input_data[feature_names]
             input_scaled = scaler.transform(input_data)
 
-            import numpy as np
-            predicted_price = np.expm1(model.predict(input_scaled)[0])
-            predicted_usd = predicted_price / usd_rate
+            # Prédiction (log scale -> expm1 pour repasser à l'échelle originale)
+            predicted_log_price = model.predict(input_scaled)[0]
+            predicted_price = np.expm1(predicted_log_price)
+            predicted_usd = predicted_price / USD_RATE
 
+            # Prix moyen des téléphones similaires (USD uniquement)
             similar_phones = df[
                 (df['Internal storage (GB)'].between(storage * 0.8, storage * 1.2)) &
                 (df['RAM (MB)'].between(ram * 1000 * 0.8, ram * 1000 * 1.2))
             ]
             avg_price = similar_phones['Price'].mean() if not similar_phones.empty else predicted_price
-            avg_usd = avg_price / usd_rate
+            avg_usd = avg_price / USD_RATE
 
             onglet1, onglet2, onglet3 = st.tabs([
                 "📱 Prix estimé", "📈 Visualisations", "ℹ️ Informations Complémentaires"
@@ -152,16 +155,16 @@ with col_main:
 
             with onglet1:
                 st.markdown(
-                    f"<div style='text-align:center; font-size:2em;'><b>₹{predicted_price:,.0f} (≈ ${predicted_usd:,.2f})</b></div>",
+                    f"<div style='text-align:center; font-size:2em;'><b>${predicted_usd:,.2f}</b></div>",
                     unsafe_allow_html=True
                 )
                 st.markdown(
                     f"<div style='text-align:center; margin-top:20px; font-size:1.2em;'>"
-                    f"Prix moyen similaire : <b>₹{avg_price:,.0f} (≈ ${avg_usd:,.2f})</b></div>",
+                    f"Prix moyen similaire : <b>${avg_usd:,.2f}</b></div>",
                     unsafe_allow_html=True
                 )
 
-                variation = ((predicted_price - avg_price) / avg_price) * 100
+                variation = ((predicted_usd - avg_usd) / avg_usd) * 100 if avg_usd else 0
                 variation_text = f"{abs(variation):.1f}%"
                 if variation > 0:
                     st.markdown(
@@ -179,9 +182,9 @@ with col_main:
                         "Prix équivalent à la moyenne</div>",
                         unsafe_allow_html=True)
 
-                if predicted_price > avg_price * 1.1:
+                if predicted_usd > avg_usd * 1.1:
                     st.warning("⚠️ Prix supérieur à la moyenne — attention au rapport qualité/prix")
-                elif predicted_price < avg_price * 0.9:
+                elif predicted_usd < avg_usd * 0.9:
                     st.success("✅ Prix en dessous de la moyenne — bon rapport qualité/prix")
                 else:
                     st.info("ℹ️ Prix dans la moyenne des téléphones similaires")
@@ -238,9 +241,9 @@ with col_main:
                     st.info(f"""
                     **Statistiques :**
                     - Téléphones similaires trouvés : {len(similar_phones)}
-                    - Différence avec la moyenne : {((predicted_price - avg_price) / avg_price * 100):.1f}%
-                    - Prix par Go (₹/GB) : $4.34
-                    - Prix par MP (₹/MP) : $6.97
+                    - Différence avec la moyenne : {variation:.1f}%
+                    - Prix par Go : ${(price_per_gb / USD_RATE):.2f}
+                    - Prix par MP : ${(price_per_mp / USD_RATE):.2f}
                     """)
 
         except Exception as e:
