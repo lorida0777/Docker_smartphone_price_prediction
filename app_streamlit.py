@@ -164,7 +164,84 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
                 unsafe_allow_html=True
             )
 
-        # ... (le reste du code reste inchangé) ...
+        st.markdown("---")
+        st.subheader("📈 Visualisations")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            fig_bar = px.bar(
+                x=['Prix Prédit', 'Prix Moyen Similaire'],
+                y=[adjusted_price_usd, avg_price_usd],
+                title="Comparaison des Prix ($)",
+                labels={'x': 'Type de Prix', 'y': 'Prix ($)'},
+                color=['Prix Prédit', 'Prix Moyen Similaire'],
+                color_discrete_map={'Prix Prédit': '#1f77b4', 'Prix Moyen Similaire': '#ff7f0e'}
+            )
+            fig_bar.update_layout(showlegend=False)
+            st.plotly_chart(fig_bar, use_container_width=True)
+
+        with col2:
+            fig_radar = go.Figure()
+            fig_radar.add_trace(go.Scatterpolar(
+                r=[battery/5000, screen_size/7, ram/8, storage/256, rear_camera/64, front_camera/32],
+                theta=['Batterie', 'Écran', 'RAM', 'Stockage', 'Cam. Arrière', 'Cam. Avant'],
+                fill='toself',
+                name='Téléphone Saisi',
+                line_color='#1f77b4'
+            ))
+            fig_radar.add_trace(go.Scatterpolar(
+                r=[
+                    df['Battery capacity (mAh)'].mean() / 5000,
+                    df['Screen size (inches)'].mean() / 7,
+                    df['RAM (MB)'].mean() / 8000,
+                    df['Internal storage (GB)'].mean() / 256,
+                    df['Rear camera'].mean() / 64,
+                    df['Front camera'].mean() / 32
+                ],
+                theta=['Batterie', 'Écran', 'RAM', 'Stockage', 'Cam. Arrière', 'Cam. Avant'],
+                fill='toself',
+                name='Moyenne Générale',
+                line_color='#ff7f0e'
+            ))
+            fig_radar.update_layout(
+                polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
+                showlegend=True,
+                title="Comparaison des Caractéristiques"
+            )
+            st.plotly_chart(fig_radar, use_container_width=True)
+
+        st.markdown("---")
+        st.subheader("ℹ️ Informations Complémentaires")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.info(f"""
+            **Caractéristiques saisies:**
+            - Marque: {brand}
+            - Batterie: {battery} mAh
+            - Écran: {screen_size:.1f} pouces
+            - RAM: {ram} GB
+            - Stockage: {storage} GB
+            - Caméra arrière: {rear_camera} MP
+            - Caméra avant: {front_camera} MP
+            """)
+
+        with col2:
+            st.info(f"""
+            **Statistiques:**
+            - Téléphones similaires trouvés: {len(similar_phones)}
+            - Différence avec la moyenne: {delta:.1f}%
+            - Prix par GB: ${price_per_gb / USD_RATE:.0f}
+            - Prix par MP: ${price_per_mp / USD_RATE:.0f}
+            """)
+
+        if adjusted_price_usd > avg_price_usd * 1.1:
+            st.warning("⚠️ Le prix prédit est supérieur à la moyenne des téléphones similaires. Vérifiez les caractéristiques.")
+        elif adjusted_price_usd < avg_price_usd * 0.9:
+            st.success("✅ Le prix prédit est inférieur à la moyenne des téléphones similaires. Bon rapport qualité-prix!")
+        else:
+            st.info("ℹ️ Le prix prédit est dans la moyenne des téléphones similaires.")
 
     except Exception as e:
         st.error(f"❌ Erreur lors de la prédiction: {e}")
