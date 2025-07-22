@@ -1,8 +1,3 @@
-#Affichage sans aucune mention d’ajustement/limite : pas de note “forcé à +10%” ni “ajustement dynamique”.
-# Ajustement se fait en interne, l’utilisateur voit uniquement le résultat final.
-# Les prix sont en USD
-# Les sélecteurs proposent uniquement les valeurs reconnues par les encodeurs.
-
 import streamlit as st
 import pandas as pd
 import joblib
@@ -43,7 +38,6 @@ if df is None:
     st.error("Impossible de charger les données. Vérifiez que tous les fichiers sont présents.")
     st.stop()
 
-# Utiliser uniquement les classes reconnues par les encodeurs
 brands_supported = sorted(brand_encoder.classes_)
 processors_supported = sorted(processor_encoder.classes_)
 
@@ -99,16 +93,13 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
             st.error(f"Processeur inconnu pour l’encodeur : {processor}")
             st.stop()
 
-        # Réordonner les colonnes selon l'ordre d'entraînement
         input_data = input_data[feature_names]
         input_scaled = scaler.transform(input_data)
 
-        # Prédiction brute LOG puis conversion
         predicted_log_price = model.predict(input_scaled)[0]
         predicted_price_rs = np.expm1(predicted_log_price)
         predicted_price_usd = predicted_price_rs / USD_RATE
 
-        # Calcul du prix moyen des téléphones similaires (en USD)
         similar_phones = df[
             (df['Internal storage (GB)'].between(storage * 0.8, storage * 1.2)) &
             (df['RAM (MB)'].between(ram * 1000 * 0.8, ram * 1000 * 1.2))
@@ -130,11 +121,20 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
             max_allowed = avg_price_usd * 1.10
             if adjusted_price_usd > max_allowed:
                 adjusted_price_usd = max_allowed
-            # Note: pas de note, affichage "pur"
         else:
             adjusted_price_usd = predicted_price_usd
 
-        st.success("✅ Prédiction effectuée avec succès!")
+        # Calcul du delta pour le badge
+        delta = ((adjusted_price_usd - avg_price_usd) / avg_price_usd * 100)
+        badge_color = "#00c853" if delta < 0 else "#d50000" if delta > 0 else "#888"
+        badge_sign = "+" if delta > 0 else ""
+        flag_html = f"<span style='background:{badge_color};color:white;padding:4px 10px;border-radius:12px;font-weight:bold;font-size:1.2em;margin-left:10px;'>{badge_sign}{delta:.1f}%</span>"
+
+        # Affichage du message succès centré et discret
+        st.markdown(
+            "<span style='display:inline-block; background:#e6ffed; color:#237804; padding:6px 18px; border-radius:8px; font-size:1.1em; font-weight:bold;'>✅ Prédiction effectuée avec succès!</span>",
+            unsafe_allow_html=True
+        )
 
         col1, col2 = st.columns(2)
 
@@ -148,12 +148,10 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
         with col2:
             st.markdown(
                 f"<div style='font-size:2.2em; font-weight:bold; color:#ff7f0e;'>📊 Prix Moyen Similaire</div>"
-                f"<div style='font-size:3em; color:#ff7f0e;'>${avg_price_usd:,.0f}</div>"
-                f"<div style='color:#888; font-size:1em;'>Diff. : {((adjusted_price_usd - avg_price_usd) / avg_price_usd * 100):.1f}%</div>",
+                f"<div style='font-size:3em; color:#ff7f0e;'>${avg_price_usd:,.0f} {flag_html}</div>",
                 unsafe_allow_html=True
             )
 
-        # Graphiques
         st.markdown("---")
         st.subheader("📈 Visualisations")
 
@@ -201,7 +199,6 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
             )
             st.plotly_chart(fig_radar, use_container_width=True)
 
-        # Informations complémentaires (prix en USD aussi)
         st.markdown("---")
         st.subheader("ℹ️ Informations Complémentaires")
 
@@ -211,7 +208,7 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
             **Caractéristiques saisies:**
             - Marque: {brand}
             - Batterie: {battery} mAh
-            - Écran: {screen_size} pouces
+            - Écran: {screen_size:.1f} pouces
             - RAM: {ram} GB
             - Stockage: {storage} GB
             - Caméra arrière: {rear_camera} MP
@@ -222,7 +219,7 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
             st.info(f"""
             **Statistiques:**
             - Téléphones similaires trouvés: {len(similar_phones)}
-            - Différence avec la moyenne: {((adjusted_price_usd - avg_price_usd) / avg_price_usd * 100):.1f}%
+            - Différence avec la moyenne: {delta:.1f}%
             - Prix par GB: ${price_per_gb / USD_RATE:.0f}
             - Prix par MP: ${price_per_mp / USD_RATE:.0f}
             """)
@@ -238,11 +235,10 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
         st.error(f"❌ Erreur lors de la prédiction: {e}")
         st.error("Vérifiez que toutes les valeurs sont correctes.")
 
-# Footer (sans précision modèle)
+# Footer simplifié (plus de taux de change ni précision modèle)
 st.markdown("---")
 st.markdown(f"""
 <div style='text-align: center; color: #666;'>
     <p>📊 Basé sur {len(df)} téléphones dans la base de données</p>
-    <p>Tous les montants sont affichés en dollars américains ($) - taux fixe 1 USD = 86.14 RS</p>
 </div>
 """, unsafe_allow_html=True)
