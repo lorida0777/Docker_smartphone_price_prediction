@@ -128,15 +128,21 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
         delta = ((adjusted_price_usd - avg_price_usd) / avg_price_usd * 100)
         badge_color = "#81c784" if delta < 0 else "#e57373" if delta > 0 else "#bdbdbd"
         badge_sign = "+" if delta > 0 else ""
-        flag_html = f"""<span style="background-color:{badge_color}20;
-                          color:{badge_color};
-                          border:1px solid {badge_color}30;
-                          border-radius:4px;
-                          padding:0px 4px;
-                          font-size:0.65em;
-                          margin-left:4px;
-                          line-height:1.4;
-                          opacity:0.9;">{badge_sign}{delta:.1f}%</span>"""
+        flag_html = f"""<span style="
+            background-color:{badge_color}08;
+            color:{badge_color};
+            border:0.5px solid {badge_color}15;
+            border-radius:2px;
+            padding:0 2px;
+            font-size:0.25em;
+            margin-left:2px;
+            line-height:1.2;
+            opacity:0.7;
+            vertical-align:middle;
+            display:inline-flex;
+            align-items:center;
+            height:1em;
+        ">{badge_sign}{delta:.1f}%</span>"""
 
         # Affichage du message succès
         st.markdown(
