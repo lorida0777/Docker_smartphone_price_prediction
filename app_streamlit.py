@@ -1,4 +1,7 @@
-# modif 
+#Affichage sans aucune mention d’ajustement/limite : pas de note “forcé à +10%” ni “ajustement dynamique”.
+# Ajustement se fait en interne, l’utilisateur voit uniquement le résultat final.
+# Les prix sont en USD
+# Les sélecteurs proposent uniquement les valeurs reconnues par les encodeurs.
 
 import streamlit as st
 import pandas as pd
@@ -10,7 +13,6 @@ import numpy as np
 # Conversion
 USD_RATE = 86.14
 
-# Configuration de la page
 st.set_page_config(
     page_title="Prédiction de Prix de Téléphones",
     page_icon="📱",
@@ -41,10 +43,13 @@ if df is None:
     st.error("Impossible de charger les données. Vérifiez que tous les fichiers sont présents.")
     st.stop()
 
-# Sidebar : chaque caractéristique sur UNE ligne
+# Utiliser uniquement les classes reconnues par les encodeurs
+brands_supported = sorted(brand_encoder.classes_)
+processors_supported = sorted(processor_encoder.classes_)
+
 st.sidebar.header("📋 Caractéristiques du téléphone")
-brand = st.sidebar.selectbox("Marque", sorted(df['Brand'].unique()), help="Sélectionnez la marque du téléphone")
-processor = st.sidebar.selectbox("Processeur (code)", sorted(df['Processor'].unique()), help="Code numérique du processeur")
+brand = st.sidebar.selectbox("Marque", brands_supported, help="Sélectionnez la marque du téléphone")
+processor = st.sidebar.selectbox("Processeur (code)", processors_supported, help="Code numérique du processeur")
 battery = st.sidebar.number_input("Batterie (mAh)", min_value=1000, max_value=10000, value=4000, step=100)
 screen_size = st.sidebar.number_input("Taille écran (pouces)", min_value=4.0, max_value=8.0, value=5.0, step=0.1)
 ram = st.sidebar.number_input("RAM (GB)", min_value=1, max_value=16, value=4, step=1)
@@ -96,7 +101,6 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
 
         # Réordonner les colonnes selon l'ordre d'entraînement
         input_data = input_data[feature_names]
-        # Normalisation
         input_scaled = scaler.transform(input_data)
 
         # Prédiction brute LOG puis conversion
@@ -112,7 +116,7 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
         avg_price_rs = similar_phones['Price'].mean() if not similar_phones.empty else predicted_price_rs
         avg_price_usd = avg_price_rs / USD_RATE
 
-        # --- Ajustement dynamique inchangé (mais tout en USD)
+        # --- Ajustement dynamique interne sans affichage de note ---
         if len(similar_phones) >= 5:
             relative_gap = abs(predicted_price_usd - avg_price_usd) / avg_price_usd
             if relative_gap > 0.3:
@@ -126,22 +130,18 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
             max_allowed = avg_price_usd * 1.10
             if adjusted_price_usd > max_allowed:
                 adjusted_price_usd = max_allowed
-                price_note = "(forcé à +10% max de la moyenne)"
-            else:
-                price_note = f"(ajusté dynamiquement, poids modèle: {model_weight:.2f})"
+            # Note: pas de note, affichage "pur"
         else:
             adjusted_price_usd = predicted_price_usd
-            price_note = "(pas assez de téléphones similaires pour ajustement)"
 
-        # Affichage résultat (prix en GRAND)
         st.success("✅ Prédiction effectuée avec succès!")
+
         col1, col2 = st.columns(2)
 
         with col1:
             st.markdown(
                 f"<div style='font-size:2.2em; font-weight:bold; color:#1f77b4;'>💰 Prix Prédit</div>"
-                f"<div style='font-size:3em; color:#1f77b4;'>${adjusted_price_usd:,.0f}</div>"
-                f"<div style='color:#888; font-size:1em;'>{price_note}</div>",
+                f"<div style='font-size:3em; color:#1f77b4;'>${adjusted_price_usd:,.0f}</div>",
                 unsafe_allow_html=True
             )
 
@@ -160,7 +160,6 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
         col1, col2 = st.columns(2)
 
         with col1:
-            # Comparaison des prix (USD)
             fig_bar = px.bar(
                 x=['Prix Prédit', 'Prix Moyen Similaire'],
                 y=[adjusted_price_usd, avg_price_usd],
@@ -173,7 +172,6 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
             st.plotly_chart(fig_bar, use_container_width=True)
 
         with col2:
-            # Radar - inchangé
             fig_radar = go.Figure()
             fig_radar.add_trace(go.Scatterpolar(
                 r=[battery/5000, screen_size/7, ram/8, storage/256, rear_camera/64, front_camera/32],
@@ -240,7 +238,7 @@ if st.sidebar.button("🚀 Prédire le Prix", type="primary"):
         st.error(f"❌ Erreur lors de la prédiction: {e}")
         st.error("Vérifiez que toutes les valeurs sont correctes.")
 
-# Footer (version light, sans précision modèle)
+# Footer (sans précision modèle)
 st.markdown("---")
 st.markdown(f"""
 <div style='text-align: center; color: #666;'>
