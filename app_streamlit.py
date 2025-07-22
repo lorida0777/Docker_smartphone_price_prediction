@@ -1,3 +1,4 @@
+# Modif num 5
 import streamlit as st
 import pandas as pd
 import joblib
@@ -22,11 +23,11 @@ def load_data():
     """Charge les données et modèles"""
     try:
         df = pd.read_csv('ndtv_data_final.csv')
-        model = joblib.load('phone_price_model.pkl')
-        brand_encoder = joblib.load('brand_encoder.pkl')
-        processor_encoder = joblib.load('processor_encoder.pkl')
-        scaler = joblib.load('scaler.pkl')
-        feature_names = joblib.load('feature_names.pkl')
+        model = joblib.load('models/phone_price_model.pkl')
+        brand_encoder = joblib.load('models/brand_encoder.pkl')
+        processor_encoder = joblib.load('models/processor_encoder.pkl')
+        scaler = joblib.load('models/scaler.pkl')
+        feature_names = joblib.load('models/feature_names.pkl')
         return df, model, brand_encoder, processor_encoder, scaler, feature_names
     except Exception as e:
         st.error(f"Erreur lors du chargement des données: {e}")
@@ -53,13 +54,13 @@ brand = st.sidebar.selectbox("Marque", brands, help="Sélectionnez la marque du 
 col1, col2 = st.sidebar.columns(2)
 with col1:
     battery = st.number_input("Batterie (mAh)", min_value=1000, max_value=10000, value=4000, step=100)
-    screen_size = st.number_input("Taille écran (pouces)", min_value=4.0, max_value=8.0, value=6.1, step=0.1)
-    ram = st.number_input("RAM (GB)", min_value=1, max_value=16, value=6, step=1)
-    storage = st.number_input("Stockage (GB)", min_value=16, max_value=1024, value=128, step=16)
+    screen_size = st.number_input("Taille écran (pouces)", min_value=4.0, max_value=8.0, value=5, step=0.1)
+    ram = st.number_input("RAM (GB)", min_value=1, max_value=16, value=4, step=1)
+    storage = st.number_input("Stockage (GB)", min_value=16, max_value=1024, value=64, step=8)
 
 with col2:
     processor = st.sidebar.selectbox("Processeur (code)", processors, help="Code numérique du processeur")
-    rear_camera = st.number_input("Caméra arrière (MP)", min_value=5, max_value=200, value=48, step=1)
+    rear_camera = st.number_input("Caméra arrière (MP)", min_value=5, max_value=200, value=24, step=2)
     front_camera = st.number_input("Caméra avant (MP)", min_value=2, max_value=50, value=12, step=1)
 
 # Bouton de prédiction
