@@ -1,14 +1,4 @@
-# Docker_smartphone_price_prediction
-
-#First commit
-
-# 📱 Application de Prédiction de Prix de Smartphones
-
-> > > > > > > 49e8c39 (version 2 optimisation)
-
 # 📱 Prédiction de Prix de Smartphones
-
-> > > > > > > 74f9647 (mise a jour readme)
 
 Ce projet permet de prédire le **prix d’un smartphone** à partir de ses caractéristiques techniques (RAM, stockage, caméra, processeur, etc.) en se basant sur un modèle de machine learning entraîné sur un large dataset.
 
