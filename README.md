@@ -117,5 +117,4 @@ Projet réalisé (Août 2025) dans un cadre pédagogique de l'**INSI** par :
 - [ANDRIATSIFERANA No Kanto Lorida](mailto:kantonotsiferana@gmail.com)
 - [ANDRIANTSALAMA Rijamampianina](mailto:rijamampianina@gmail.com)
 
-
 ---
