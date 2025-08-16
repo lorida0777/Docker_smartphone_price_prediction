@@ -8,7 +8,7 @@ WORKDIR /app
 COPY requirements.txt .
 
 # 🔧 Installer les paquets nécessaires
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --default-timeout=100 --no-cache-dir -r requirements.txt
 
 # 📂 Copier le reste des fichiers
 COPY . .
