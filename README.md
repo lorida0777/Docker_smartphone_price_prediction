@@ -42,7 +42,7 @@ Et plusieurs **caractéristiques dérivées** (créées automatiquement lors du 
 
 ## 🧠 Modèle de Machine Learning
 
-- Le modèle sélectionné correspond **au meilleur des trois testés** pour ce cas de prédiction (Linear Regression, Random Forest Regressor, Gradient Boosting Regressor).
+- Le modèle sélectionné correspond **au meilleur des trois testés** pour ce cas de prédiction (Extra Trees, Random Forest Regressor, Gradient Boosting Regressor).
 
 - Entraînement réalisé sur le dataset [![© Kaggle Dataset](https://img.shields.io/badge/©%20Kaggle%20Dataset-grey?logo=kaggle&logoColor=white)](https://www.kaggle.com/datasets/pratikgarai/mobile-phone-specifications-and-prices) : `ndtv_data_final.csv`. 
 
@@ -118,3 +118,4 @@ Projet réalisé (Août 2025) dans un cadre pédagogique de l'**INSI** par :
 - [ANDRIANTSALAMA Rijamampianina](mailto:rijamampianina@gmail.com)
 
 ---
+
